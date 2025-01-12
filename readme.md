@@ -1,7 +1,9 @@
 # Jeu de Morpion
 > E3A | Programmation en language C
 
-<img src="./src/resources/image.png" alt="Status" width="250" height="250" align="center"/>
+<p align="center">
+    <img src="./src/resources/image.png" alt="Status" width="250" height="250"/>
+</p>
 
 ## Description
 
