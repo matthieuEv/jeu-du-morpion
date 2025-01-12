@@ -19,6 +19,11 @@ jobs:
         uses: matthieuEv/Github-Action-Tag@v1
         id: tag-creation
 
+      - name: Install dependencies
+        run: |
+            sudo apt-get update
+            sudo apt-get install -y libglfw3-dev libglew-dev libgl1-mesa-dev
+
       - name: Build for Etape 3
         run: |
             gcc -DCONFIG_PLAYER_MANAGER_OPENGL -DCONFIG_OPENGLUI -w -lglfw -lGL -lGLEW -lm -Wno-implicit-function-declaration src/*.c -o ./jeu-du-morpion
