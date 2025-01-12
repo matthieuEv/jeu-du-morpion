@@ -25,7 +25,7 @@ jobs:
 
       - name: Upload APK
         if: steps.tag-creation.outputs.makeRelease
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: app
           path: ./jeu-du-morpion
