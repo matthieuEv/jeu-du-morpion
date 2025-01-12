@@ -1,0 +1,56 @@
+name: 🚀 Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Tag Creation
+        uses: matthieuEv/Github-Action-Tag@v1
+        id: tag-creation
+
+      - name: Build for Etape 3
+        run: |
+            gcc -DCONFIG_PLAYER_MANAGER_OPENGL -DCONFIG_OPENGLUI -w -lglfw -lGL -lGLEW -lm -Wno-implicit-function-declaration src/*.c -o ./jeu-du-morpion
+
+      - name: Upload APK
+        if: steps.tag-creation.outputs.makeRelease
+        uses: actions/upload-artifact@v2
+        with:
+          name: app
+          path: ./jeu-du-morpion
+
+      - name: Create Release
+        if: steps.tag-creation.outputs.makeRelease
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag-creation.outputs.newVersion }}
+          release_name: Release ${{ steps.tag-creation.outputs.newVersion }}
+          body: 'Nouvelle release disponible ! 🎉 \n${{ steps.tag-creation.outputs.commitName }}'
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        if: steps.tag-creation.outputs.makeRelease
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./jeu-du-morpion
+          asset_name: jeu-du-morpion.exe
+          asset_content_type: application/octet-stream
