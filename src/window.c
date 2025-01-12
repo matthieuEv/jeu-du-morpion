@@ -224,6 +224,11 @@ void free_window(){
     glfwTerminate();
 }
 
+int close_window(){
+    glfwSetWindowShouldClose(window, GLFW_TRUE);
+    return 0;
+}
+
 int windowShouldClose(){
     return glfwWindowShouldClose(window);
 }

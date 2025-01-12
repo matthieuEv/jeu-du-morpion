@@ -12,6 +12,7 @@ void init_window(int width, int height, bool resizable, char* title);
 void set_mouse_callback(void (*callback)(double, double));
 
 void free_window();
+int close_window();
 int windowShouldClose();
 
 unsigned int add_image(const char* texture_path, double width, double height);
