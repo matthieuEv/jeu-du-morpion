@@ -42,9 +42,16 @@ void Game_free(void)
 	Board_free();
 }
 
-void Game_loop(void)
+void Game_loop (void)
 {
-    while (!TemoinFinPartie) {
-        PlayerManager_oneTurn();
-    }
+  #if defined CONFIG_PLAYER_MANAGER_OPENGL
+	while(!windowShouldClose() && !TemoinFinPartie){
+		BoardView_displayAll();
+		PlayerManager_oneTurn();
+	}
+  #else
+	while(!TemoinFinPartie){
+		PlayerManager_oneTurn();
+	}
+  #endif
 }
