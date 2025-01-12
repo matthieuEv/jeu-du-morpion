@@ -12,20 +12,28 @@
 
 
 
-#define MAX_OBJECTS             255
+#define MAX_IMAGES             255
 #define RECTANGLE_VERTEX_SIZE   20
+
+typedef struct Object{
+    int image_id;
+    float x;
+    float y;
+    struct Object* next;
+} Object;
 
 
 
 static GLFWwindow* window;
 static unsigned int shaderProgram;
 static float vertices[RECTANGLE_VERTEX_SIZE];
-static unsigned int VBO, EBO, VAO[MAX_OBJECTS];
-static unsigned int texture[MAX_OBJECTS];
-static int nbObjects = 0;
+static unsigned int VBO, EBO;
+static unsigned int VAO[MAX_IMAGES];
+static unsigned int texture[MAX_IMAGES];
+static int nbImages = 0;
 static int win_width, win_height;
+static Object* objects = NULL;
 
-static void (*renderCallback)(void);
 static void (*mouseCallback)(double, double);
 
 
@@ -64,6 +72,7 @@ static const int RECTANGLE_INDICES[] = {
 void init_shader_program();
 unsigned int load_texture(const char* path);
 void setRectangleVertices(float vertex[], double width, double height);
+void render_object(unsigned int object, double x, double y);
 
 float convert_to_opengl_pos_width(double pos);
 float convert_to_opengl_pos_height(double pos);
@@ -75,7 +84,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 
 
-void init_window(int width, int height, bool resizable){
+void init_window(int width, int height, bool resizable, char* title){
 
     win_width = width;
     win_height = height;
@@ -94,7 +103,7 @@ void init_window(int width, int height, bool resizable){
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     }
 
-    window = glfwCreateWindow(width, height, "Morpion", NULL, NULL);
+    window = glfwCreateWindow(width, height, title, NULL, NULL);
     if (!window) {
         printf("Failed to create window\n");
         glfwTerminate();
@@ -112,10 +121,6 @@ void init_window(int width, int height, bool resizable){
 
     // Init mouse click
     glfwSetMouseButtonCallback(window, mouse_button_callback);
-}
-
-void set_render_callback(void (*callback)(void)){
-    renderCallback = callback;
 }
 
 void set_mouse_callback(void (*callback)(double, double)){
@@ -207,10 +212,11 @@ void setRectangleVertices(float vertex[], double width, double height){
 }
 
 void free_window(){
+    clear_all_images();
     glDeleteProgram(shaderProgram);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
-    for (int i = 0; i < nbObjects; i++){
+    for (int i = 0; i < nbImages; i++){
         glDeleteVertexArrays(1, &VAO[i]);
         glDeleteTextures(1, &texture[i]);
     }
@@ -224,8 +230,8 @@ int windowShouldClose(){
 
 
 
-unsigned int add_object(const char* texture_path, double width, double height){
-    if (nbObjects >= MAX_OBJECTS){
+unsigned int add_image(const char* texture_path, double width, double height){
+    if (nbImages >= MAX_IMAGES){
         printf("Max objects reached\n");
         return -1;
     }
@@ -235,8 +241,8 @@ unsigned int add_object(const char* texture_path, double width, double height){
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
 
-    glGenVertexArrays(1, &VAO[nbObjects]);
-    glBindVertexArray(VAO[nbObjects]);
+    glGenVertexArrays(1, &VAO[nbImages]);
+    glBindVertexArray(VAO[nbImages]);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -254,13 +260,64 @@ unsigned int add_object(const char* texture_path, double width, double height){
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    texture[nbObjects] = load_texture(texture_path);
+    texture[nbImages] = load_texture(texture_path);
 
-    return nbObjects++;
+    return nbImages++;
 
 }
 
-void draw_object(unsigned int object, double x, double y){
+int* draw_image(unsigned int object, double x, double y){
+    Object* new_object = malloc(sizeof(Object));
+    new_object->image_id = object;
+    new_object->x = x;
+    new_object->y = y;
+    new_object->next = NULL;
+
+    // Add the object at the end of the list
+    if(objects != NULL){
+        Object* current = objects;
+        while (current->next != NULL){
+            current = current->next;
+        }
+        current->next = new_object;
+    } else {
+        objects = new_object;
+    }
+
+
+    return new_object;
+}
+
+// TODO: Check this function
+void clear_image(int* object){
+    Object* current = objects;
+    Object* previous = NULL;
+    while (current != NULL){
+        if (current == object){
+            if (previous == NULL){
+                objects = current->next;
+            } else {
+                previous->next = current->next;
+            }
+            free(current);
+            break;
+        }
+        previous = current;
+        current = current->next;
+    }
+}
+
+void clear_all_images(){
+    Object* current = objects;
+    while (current != NULL){
+        Object* next = current->next;
+        free(current);
+        current = next;
+    }
+    objects = NULL;
+}
+
+void render_object(unsigned int object, double x, double y){
     int offsetLocation = glGetUniformLocation(shaderProgram, "uOffset");
 
     float new_x = convert_to_opengl_pos_width(x);
@@ -278,8 +335,14 @@ void render_window(){
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(shaderProgram);
+    
+    
+    Object* current = objects;
+    while (current != NULL){
+        render_object(current->image_id, current->x, current->y);
+        current = current->next;
+    }
 
-    renderCallback();
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -297,9 +360,19 @@ void get_window_size(int* width, int* height){
     glfwGetFramebufferSize(window, width, height);
 }
 
-
-
 void windowSizeCallback(GLFWwindow* window, int width, int height){
+
+    // Update the position of the objects
+    for(Object* current = objects; current != NULL; current = current->next){
+        // Get the ration of the new size
+        float ratio_width = (float)width / (float)win_width;
+        float ratio_height = (float)height / (float)win_height;
+
+        // Update the position of the object
+        current->x = current->x * ratio_width;
+        current->y = current->y * ratio_height;
+    }
+
     glViewport(0, 0, width, height);
 
     glMatrixMode(GL_PROJECTION);

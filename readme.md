@@ -98,3 +98,7 @@ make etape2
 # For step 3
 make
 ```
+
+## Contributors
+
+I based the `Etape 3` on the work of [this repository](https://github.com/JulienGuitter/2D-OpenGL-Interface) by [Julien Guitter](https://github.com/JulienGuitter).
