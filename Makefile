@@ -1,5 +1,5 @@
 all:
-	echo "unused for now"
+	gcc -DCONFIG_TEXTUI -DCONFIG_PLAYER_MANAGER_SCANF -DDEF_DRAW src/*.c -o main && ./main
 
 test_draw:
 	gcc -DCONFIG_TEXTUI -DCONFIG_PLAYER_MANAGER_MOCK -DDEF_DRAW src/*.c -o main && ./main
