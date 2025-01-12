@@ -1,6 +1,8 @@
 # Jeu de Morpion
 > E3A | Programmation en language C
 
+<img src="./src/resources/image.png" alt="Status" width="100" height="100" />
+
 ## Description
 
 "Programmation en language C" class project. The goal is to create a Tic Tac Toe game in C language.
